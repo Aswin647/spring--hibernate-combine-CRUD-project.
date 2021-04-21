@@ -1,0 +1,320 @@
+
+// BELOW IS THE CODE OF CONTROLLER I.E , business logic//
+
+
+
+package aswin.controller;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
+import aswin.dao.CustomerDAO;
+import aswin.entity.Customer;
+import aswin.service.CustomerService;
+
+@Controller
+@RequestMapping("/Customer")
+public class CustomerController {
+
+private CustomerService customerService;	
+	
+/*
+// need to inject the customer DAO
+@Autowired
+private CustomerDAO customerDAO;
+*/
+@GetMapping("/list")
+public String listCustomers(Model theModel) {
+		
+	/*
+// get the customer from the dao
+	
+ List<Customer> theCustomers = customerDAO.getCustomers();
+ */
+//get the customer from the dao
+	
+List<Customer> theCustomers = customerService.getCustomers();
+							
+			
+	// then add the customer to the model.
+	theModel.addAttribute("customers", theCustomers);
+			
+	return "list-customers";	
+		
+	}
+
+@GetMapping("/ShowFormForAdd")
+public String ShowFormForAdd(Model theModel) {
+
+	// create model data to bind the form data
+	
+	Customer thecustomer=new Customer();
+	theModel.addAttribute("customer", thecustomer);
+	
+	
+	return "customer-form";
+	
+
+} 
+
+
+@PostMapping("/saveCustomer")
+public String saveCustomer(@ModelAttribute("customer") Customer theCustomer) {
+	
+	// save the customer using our service
+	customerService.saveCustomer(theCustomer);
+	
+	
+	return "redirect:/customer/list";
+}
+
+
+@GetMapping("/showFormForUpdate")
+public String showFormForUpdate(@RequestParam("customerId") int theId,
+								Model theModel) {
+	
+	// get the customer from our service
+	Customer theCustomer = customerService.getCustomer(theId);	
+	
+	// set customer as a model attribute to pre-populate the form
+	theModel.addAttribute("customer", theCustomer);
+	
+	// send over to our form		
+	return "customer-form";
+}
+
+@GetMapping("/delete")
+public String deleteCustomer(@RequestParam("customerId") int theId) {
+	
+	// delete the customer
+	customerService.deleteCustomer(theId);
+	
+	return "redirect:/customer/list";
+}
+
+}
+
+
+
+
+
+// BELOW IS THE CODE OF list-customer.jsp//
+
+
+<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+
+	<title>List Customers</title>
+	
+	
+	<!-- reference our style sheet -->
+
+	<link type="text/css"
+		  rel="stylesheet"
+		  href="${pageContext.request.contextPath}/resources/css/style.css" />
+	
+	
+</head>
+
+<body>
+
+<div id="wrapper">
+<div id="header">
+
+<h2>customer relation management</h2>
+
+
+</div>
+
+</div>
+
+<div id="container">
+	
+		<div id="content">
+		
+<!-- put new button ,add customer -->		
+
+<input type="button" value="add Customer"
+	onclick="window.location.href='ShowFormForAdd';return false;"
+	class="add button";
+	/>	
+	<!--  add our html table here -->	
+	<table>
+	<tr>
+	
+	<th>First Name</th>
+	<th>last Name</th>
+	<th>Email</th>
+	<th>Action</th>
+	
+	</tr>
+	
+	
+	<!-- loop over and print our customers -->
+				<c:forEach var="tempCustomer" items="${customers}">
+				
+				
+						<!-- construct an "update" link with customer id -->
+					<c:url var="updateLink" value="/customer/showFormForUpdate">
+						<c:param name="customerId" value="${tempCustomer.id}" />
+					</c:url>			
+					
+					
+					
+						<!-- construct an "delete" link with customer id -->
+					<c:url var="deleteLink" value="/customer/delete">
+						<c:param name="customerId" value="${tempCustomer.id}" />
+					</c:url>					
+				
+					<tr>
+						<td> ${tempCustomer.firstName} </td>
+						<td> ${tempCustomer.lastName} </td>
+						<td> ${tempCustomer.email} </td>
+						
+							<td>
+							<!-- display the update link -->
+							<a href="${updateLink}">Update</a>
+							
+							<a href="${deleteLink}"
+							onclick= "if (!(confirm('Are you sure you want to delete this customer?'))) return false">Delete</a>
+							
+							
+						</td>
+						
+					
+						
+					</tr>
+					
+				
+				</c:forEach>
+	
+	
+	</table>
+		
+		
+</div>
+</div>
+		
+		
+
+</body>
+
+</html>
+
+	
+
+
+
+
+// Below is the code of customer-form.jsp//
+
+
+
+
+
+<%@ taglib prefix="form" uri="http://www.springframework.org/tags/form" %>
+
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>Save Customer</title>
+
+	<link type="text/css"
+		  rel="stylesheet"
+		  href="${pageContext.request.contextPath}/resources/css/style.css">
+
+	<link type="text/css"
+		  rel="stylesheet"
+		  href="${pageContext.request.contextPath}/resources/css/add-customer-style.css">
+</head>
+
+<body>
+	
+	<div id="wrapper">
+		<div id="header">
+			<h2>CRM - Customer Relationship Manager</h2>
+		</div>
+	</div>
+
+	<div id="container">
+		<h3>Save Customer</h3>
+	
+		<form:form action="saveCustomer" modelAttribute="customer" method="POST">
+		
+		
+		<!-- need to associate this data with customer id -->
+			<form:hidden path="id" />
+			<table>
+				<tbody>
+					<tr>
+						<td><label>First name:</label></td>
+						<td><form:input path="firstName" /></td>
+					</tr>
+				
+					<tr>
+						<td><label>Last name:</label></td>
+						<td><form:input path="lastName" /></td>
+					</tr>
+
+					<tr>
+						<td><label>Email:</label></td>
+						<td><form:input path="email" /></td>
+					</tr>
+
+					<tr>
+						<td><label></label></td>
+						<td><input type="submit" value="Save" class="save" /></td>
+					</tr>
+
+				
+				</tbody>
+			</table>
+		
+		
+		</form:form>
+	
+		<div style="clear; both;"></div>
+		
+		<p>
+			<a href="${pageContext.request.contextPath}/customer/list">Back to List</a>
+		</p>
+	
+	</div>
+
+</body>
+
+</html>
+
+
+
+
+// Below is the code of index.jsp
+
+
+<% response.sendRedirect("Customer/list"); %>
+
+
+
+
+
+
+
+
+
+
+
+
